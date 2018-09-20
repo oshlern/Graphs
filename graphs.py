@@ -12,9 +12,9 @@ class Node:
 class Edge:
     def __init__(self, *vs, strength=None):
         assert len(vs) != 0, "Empty edge"
-        assert not all([isinstance(v, Node) for v in vs]), "Edge given a non node_type (given {})".format(vs)
+        assert all([isinstance(v, Node) for v in vs]), "Edge given a non node_type (given {})".format(vs)
         self.vs = vs
-        init_strength(strength)
+        self.init_strength(strength)
 
     def init_strength(self, strength=None):
         if strength != None:
@@ -41,24 +41,29 @@ class Graph:
         self.vs = vs
         self.n = len(vs)
 
-    def remove_vertex(v): # do we want to mutate the vertices? thinking about subset graphs. I think we'll clone, so it's okay to mutate
+    def remove_vertex(self, v): # do we want to mutate the vertices? thinking about subset graphs. I think we'll clone, so it's okay to mutate
         assert isinstance(v, Node), "{} is not a node".format(v)
         assert v in self.vs, "cannot remove vertex because {} not in graph".format(v)
-        self.vs.remove(v)
-        for e in v.edges:
+        self.vs.remove(v) # remove vertex
+        for e in v.edges: # loop over adjacent edges
+            # remove edge from adjacent vertices
             for adjacent_v in e.vs: # going to include v but that's filtered out
                 if adjacent_v in self.vs:
                     if e in adjacent_v.edges:
                         adjacent_v.edges.remove(e)
-
-            # remove adjacent edges
-            if edge in self.edges: # if there's an edge that wasn't there already, that's fine
-                self.edges.remove(edge)
-            del edge
-        
+            # remove edge, even if hypergraph
+            if e in self.edges: # if there's an edge that wasn't there already, that's fine
+                self.edges.remove(e)
+            del e
         del v
-        
 
+    def remove_edge(self, e):
+        assert isinstance(e, Edge), "{} is not an edge".format(e)
+        assert e in self.edges, "cannot remove edge because {} not in graph".format(v)
+        for v in e.vs: # remove edge from adjacent vertices
+            v.edges.remove(e)
+        self.edges.remove(e)
+        del e
 
     def display(self):
         # implement mathplotlib
@@ -112,11 +117,14 @@ def generate_random_graph(n, k): # n = # vs, k = # edges
     # print(vs, es)
     return Graph(es, vs)
 
-edge_list = [(1,3), (2,3), (3,4), (4,6), (5,2), (6,1), (5,4)]
-graph = generate_graph(edge_list)
+if __name__ == "__main__":
+    edge_list = [(1,3), (2,3), (3,4), (4,6), (5,2), (6,1), (5,4)]
+    graph = generate_graph(edge_list)
+    print(graph)
+    graph.remove_vertex(graph.vs[1])
+    print(graph)
+    graph.remove_edge(graph.edges[1])
+    print(graph)
 
-print(graph)
-
-graph2 = generate_random_graph(6, 4)
-
-print(graph2)
+    # graph2 = generate_random_graph(6, 4)
+    # print(graph2)
