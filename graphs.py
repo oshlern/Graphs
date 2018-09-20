@@ -3,16 +3,11 @@ import math, random
 class Node:
     def __init__(self, name="node"):
         self.id = name
-        self.x = None
-        self.y = None
+        self.x = self.y = None # Pointer and mutability won't matter because they need to be redefined, not modified
         self.edges = []
     
     def __str__(self):
-        try:
-            return str(self.id)
-            # return "Node: {}".format(self.id)
-        except Exception:
-            return "Node"
+        return str(self.id)
 
 class Edge:
     def __init__(self, *vs, strength=None):
@@ -46,8 +41,24 @@ class Graph:
         self.vs = vs
         self.n = len(vs)
 
-    def remove_vertex(v):
-        assert
+    def remove_vertex(v): # do we want to mutate the vertices? thinking about subset graphs. I think we'll clone, so it's okay to mutate
+        assert isinstance(v, Node), "{} is not a node".format(v)
+        assert v in self.vs, "cannot remove vertex because {} not in graph".format(v)
+        self.vs.remove(v)
+        for e in v.edges:
+            for adjacent_v in e.vs: # going to include v but that's filtered out
+                if adjacent_v in self.vs:
+                    if e in adjacent_v.edges:
+                        adjacent_v.edges.remove(e)
+
+            # remove adjacent edges
+            if edge in self.edges: # if there's an edge that wasn't there already, that's fine
+                self.edges.remove(edge)
+            del edge
+        
+        del v
+        
+
 
     def display(self):
         # implement mathplotlib
