@@ -1,4 +1,8 @@
 import math, random
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+from matplotlib.collections import LineCollection
+
 
 class Node:
     def __init__(self, name="node"):
@@ -65,11 +69,19 @@ class Graph:
         self.edges.remove(e)
         del e
 
-    def display(self):
-        # implement mathplotlib
-        pass
+    def display(self, radius=0.03):
+        segs = tuple([[(v.x, v.y) for v in e.vs] for e in self.edges])
+        edges = LineCollection(segs) # bad for hypergraphs
+        fig, ax = plt.subplots()
+        ax.add_collection(edges)
+        for v in self.vs:
+            ax.add_artist(Circle((v.x, v.y), radius, color="black"))
+            plt.text(v.x, v.y + radius*2, str(v))
+        ax.set_xlim(min([v.x for v in self.vs]) - 0.5, max([v.x for v in self.vs]) + 0.5)
+        ax.set_ylim(min([v.y for v in self.vs]) - 0.5, max([v.y for v in self.vs]) + 0.5)
+        plt.show()
 
-    def display_frucht(self, radius=3):
+    def display_frucht(self, radius=0.8):
         for i, v in enumerate(self.vs):
             v.x = radius*math.cos(i/self.n * math.tau)
             v.y = radius*math.sin(i/self.n * math.tau)
@@ -97,7 +109,6 @@ def generate_graph(edges):
             if node not in nodes:
                 nodes[node] = Node(node)
         v1, v2 = nodes[edge[0]], nodes[edge[1]]
-        # print(v1, v2, edge)
         e = Edge(v1, v2)#, *edge[2:])
         for edge_list in [v1.edges, v2.edges, es]:
             edge_list.append(e)
@@ -107,24 +118,25 @@ def generate_random_graph(n, k): # n = # vs, k = # edges
     vs = [Node(i+1) for i in range(n)]
     es = []
     possible_edges = []
-    for i in range(k):
-        possible_edges += [(i, j) for j in range(k)]
+    for i in range(n):
+        possible_edges += [(i, j) for j in range(n)]
     for _ in range(k):
         i, j = random.choice(possible_edges)
         es.append(Edge(vs[i], vs[j]))
         possible_edges.remove((i,j))
     del possible_edges
-    # print(vs, es)
     return Graph(es, vs)
 
 if __name__ == "__main__":
     edge_list = [(1,3), (2,3), (3,4), (4,6), (5,2), (6,1), (5,4)]
     graph = generate_graph(edge_list)
     print(graph)
-    graph.remove_vertex(graph.vs[1])
-    print(graph)
-    graph.remove_edge(graph.edges[1])
-    print(graph)
+    # graph.remove_vertex(graph.vs[1])
+    # print(graph)
+    # graph.remove_edge(graph.edges[1])
+    # print(graph)
+    graph = generate_random_graph(13, 25)
+    graph.display_frucht()
 
     # graph2 = generate_random_graph(6, 4)
     # print(graph2)
