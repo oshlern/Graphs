@@ -2,7 +2,7 @@ import math, random, copy
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.collections import LineCollection
-
+import numpy as np
 
 class Node:
     def __init__(self, name="node"):
@@ -69,6 +69,21 @@ class Graph:
             if not has_vs:
                 self.edges.remove(e)
 
+    def generate_adjacency(self):
+        self.n = len(self.vs)
+        self.A = np.zeros((self.n, self.n))
+        indices = {v: i for i,v in enumerate(self.vs)}
+        for e in self.edges:
+            assert len(e.vs) == 2
+            i, j = indices[e.vs[0]], indices[e.vs[1]]
+            if e.capacitated:
+                s = e.strength
+            else:
+                s = 1
+            self.A[i, j] = s
+            if not isinstance(e, DirectedEdge):
+                self.A[j,i] = s
+        return self.A
 
     def remove_vertex(self, v): # do we want to mutate the vertices? thinking about subset graphs. I think we'll clone, so it's okay to mutate
         assert isinstance(v, Node), "{} is not a node".format(v)
@@ -189,6 +204,7 @@ if __name__ == "__main__":
     graph = generate_random_graph(5, 4)
     print(graph)
     print(graph.is_connected())
+    print(graph.generate_adjacency())
     graph.display_frucht()
 
     # graph2 = generate_random_graph(6, 4)
