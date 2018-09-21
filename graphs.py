@@ -1,4 +1,4 @@
-import math, random
+import math, random, copy
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.collections import LineCollection
@@ -17,7 +17,7 @@ class Edge:
     def __init__(self, *vs, strength=None):
         assert len(vs) != 0, "Empty edge"
         assert all([isinstance(v, Node) for v in vs]), "Edge given a non node_type (given {})".format(vs)
-        self.vs = vs
+        self.vs = list(vs)
         self.init_strength(strength)
 
     def init_strength(self, strength=None):
@@ -44,6 +44,31 @@ class Graph:
         self.edges = edges
         self.vs = vs
         self.n = len(vs)
+        self.connect_pointers()
+    
+    def edges_to_str(self, es):
+        edge_str = ""
+        for e in self.edges:
+            edge_str += str(e) + ", "
+        return edge_str[:-2]
+
+    def connect_pointers(self):
+        # reset pointers
+        for v in self.vs:
+            v.edges = []
+        # set pointers
+        for e in self.edges:
+            has_vs = False
+            for v in e.vs:
+                if v in self.vs:
+                    v.edges.append(e)
+                    has_vs = True
+                else:
+                    self.vs.remove(v)
+                    e.vs.remove(v)
+            if not has_vs:
+                self.edges.remove(e)
+
 
     def remove_vertex(self, v): # do we want to mutate the vertices? thinking about subset graphs. I think we'll clone, so it's okay to mutate
         assert isinstance(v, Node), "{} is not a node".format(v)
@@ -69,14 +94,40 @@ class Graph:
         self.edges.remove(e)
         del e
 
+    def is_connected(self):
+        queue = [self.vs[0]]
+        reachable_vs = [self.vs[0]]
+        unreachable_vs = self.vs[1:]
+        while len(queue) > 0: #subset? len(reachable_vs)?
+            v = queue.pop(0)
+            # print("UNREACHABLE: ", [str(v) for v in unreachable_vs])
+            # print("REACHABLE: ", [str(v) for v in reachable_vs])
+            # print("ALL: ", [str(v) for v in self.vs])
+            # print([str(e) for e in v.edges])
+            for edge in v.edges:
+                for adj_v in edge.vs:
+                    assert adj_v in self.vs
+                    # print(adj_v, ", unreachable: ", [str(v) for v in unreachable_vs])
+                    if adj_v in unreachable_vs:
+                        # print("edge: ", edge, v, adj_v)
+                        reachable_vs.append(adj_v)
+                        queue.append(adj_v)
+                        unreachable_vs.remove(adj_v)
+                        # print(adj_v, unreachable_vs, reachable_vs, self.vs)
+            if len(unreachable_vs) == 0:
+                return True
+        return False
+
     def display(self, radius=0.03):
-        segs = tuple([[(v.x, v.y) for v in e.vs] for e in self.edges])
-        edges = LineCollection(segs) # bad for hypergraphs
         fig, ax = plt.subplots()
+
+        edges = LineCollection([[(v.x, v.y) for v in e.vs] for e in self.edges]) # bad for hypergraphs
         ax.add_collection(edges)
+
         for v in self.vs:
             ax.add_artist(Circle((v.x, v.y), radius, color="black"))
             plt.text(v.x, v.y + radius*2, str(v))
+
         ax.set_xlim(min([v.x for v in self.vs]) - 0.5, max([v.x for v in self.vs]) + 0.5)
         ax.set_ylim(min([v.y for v in self.vs]) - 0.5, max([v.y for v in self.vs]) + 0.5)
         plt.show()
@@ -119,7 +170,7 @@ def generate_random_graph(n, k): # n = # vs, k = # edges
     es = []
     possible_edges = []
     for i in range(n):
-        possible_edges += [(i, j) for j in range(n)]
+        possible_edges += [(i, j) for j in range(i+1, n)]
     for _ in range(k):
         i, j = random.choice(possible_edges)
         es.append(Edge(vs[i], vs[j]))
@@ -129,13 +180,15 @@ def generate_random_graph(n, k): # n = # vs, k = # edges
 
 if __name__ == "__main__":
     edge_list = [(1,3), (2,3), (3,4), (4,6), (5,2), (6,1), (5,4)]
-    graph = generate_graph(edge_list)
-    print(graph)
+    # graph = generate_graph(edge_list)
+    
     # graph.remove_vertex(graph.vs[1])
     # print(graph)
     # graph.remove_edge(graph.edges[1])
-    # print(graph)
-    graph = generate_random_graph(13, 25)
+    
+    graph = generate_random_graph(5, 4)
+    print(graph)
+    print(graph.is_connected())
     graph.display_frucht()
 
     # graph2 = generate_random_graph(6, 4)
