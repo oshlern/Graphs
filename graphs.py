@@ -1,8 +1,14 @@
-import math, random, copy
+import math, random, copy, time
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.collections import LineCollection
 import numpy as np
+
+def almost_zero(x):
+    if x**2 < 0.0001:
+        return True
+    else:
+        return False
 
 class Node:
     def __init__(self, name="node"):
@@ -99,6 +105,12 @@ class Graph:
         self.generate_degrees()
         self.L = self.D - self.A
         return self.L
+
+    def calc_eigs(self):
+        self.generate_laplacian()
+        self.eigs, self.eigvs = np.linalg.eig(self.L)
+        self.num_components = sum([almost_zero(eig) for eig in self.eigs])
+        return self.eigs, self.eigvs
 
     def remove_vertex(self, v): # do we want to mutate the vertices? thinking about subset graphs. I think we'll clone, so it's okay to mutate
         assert isinstance(v, Node), "{} is not a node".format(v)
@@ -216,11 +228,14 @@ if __name__ == "__main__":
     # print(graph)
     # graph.remove_edge(graph.edges[1])
     
-    graph = generate_random_graph(5, 4)
-    print(graph)
-    print(graph.is_connected())
-    print(graph.generate_adjacency())
-    print(graph.generate_laplacian())
+    graph = generate_random_graph(20, 30)
+    # print(graph)
+    # print(graph.is_connected())
+    # print(graph.generate_adjacency())
+    s = time.time()
+    graph.calc_eigs()
+    print(time.time() - s)
+    print(graph.num_components)
     graph.display_frucht()
 
     # graph2 = generate_random_graph(6, 4)
