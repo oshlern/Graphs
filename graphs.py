@@ -85,6 +85,21 @@ class Graph:
                 self.A[j,i] = s
         return self.A
 
+    def get_A(self):
+        self.A = self.generate_adjacency()
+        return self.A
+    
+    def generate_degrees(self):
+        self.degrees = [len(v.edges) for v in self.vs]
+        self.D = np.diag(self.degrees)
+        return self.degrees
+
+    def generate_laplacian(self):
+        self.generate_adjacency()
+        self.generate_degrees()
+        self.L = self.D - self.A
+        return self.L
+
     def remove_vertex(self, v): # do we want to mutate the vertices? thinking about subset graphs. I think we'll clone, so it's okay to mutate
         assert isinstance(v, Node), "{} is not a node".format(v)
         assert v in self.vs, "cannot remove vertex because {} not in graph".format(v)
@@ -205,6 +220,7 @@ if __name__ == "__main__":
     print(graph)
     print(graph.is_connected())
     print(graph.generate_adjacency())
+    print(graph.generate_laplacian())
     graph.display_frucht()
 
     # graph2 = generate_random_graph(6, 4)
