@@ -1,4 +1,4 @@
-import math, random, copy, time
+import math, random, copy, time#, cProfile
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.collections import LineCollection
@@ -127,6 +127,7 @@ class Graph:
                 self.edges.remove(e)
             del e
         del v
+        self.n -= 1
 
     def remove_edge(self, e):
         assert isinstance(e, Edge), "{} is not an edge".format(e)
@@ -186,6 +187,21 @@ class Graph:
             v.y = width*random.random()
         self.display()
 
+    def display_grid(self, width=3):
+        self.n = len(self.vs)
+        sqrt = round(math.sqrt(self.n))
+        row, col = 0,  0
+        for v in self.vs:
+            v.x = row * width/sqrt
+            v.y = col * width/sqrt
+
+            row += 1
+            if row == sqrt:
+                row = 0
+                col += 1
+        self.display()
+
+
     def __str__(self):
         node_str = "NODES:  "
         for v in self.vs: # ugh why does sum not work for lists of strs
@@ -220,7 +236,8 @@ def generate_random_graph(n, k): # n = # vs, k = # edges
     del possible_edges
     return Graph(es, vs)
 
-if __name__ == "__main__":
+
+def test():
     edge_list = [(1,3), (2,3), (3,4), (4,6), (5,2), (6,1), (5,4)]
     # graph = generate_graph(edge_list)
     
@@ -228,15 +245,20 @@ if __name__ == "__main__":
     # print(graph)
     # graph.remove_edge(graph.edges[1])
     
-    graph = generate_random_graph(20, 30)
-    # print(graph)
-    # print(graph.is_connected())
-    # print(graph.generate_adjacency())
-    s = time.time()
-    graph.calc_eigs()
-    print(time.time() - s)
-    print(graph.num_components)
+    graph = generate_random_graph(10, 15)
+    print("Graph: ", graph)
+    print("Connected? ", graph.is_connected())
+    print("Laplacian: ", graph.generate_laplacian())
+    # s = time.time()
+    print("eigs: ", graph.calc_eigs()[0])
+    # print(time.time() - s)
+    print("Num components: ", graph.num_components)
     graph.display_frucht()
+    # graph.display_random()
+    # graph.display_grid()
 
     # graph2 = generate_random_graph(6, 4)
     # print(graph2)
+
+if __name__ == "__main__":
+    test()
