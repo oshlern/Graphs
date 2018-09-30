@@ -26,20 +26,40 @@ class Box:
         return [Box(self.x, self.y+self.h*(i/n), self.w, self.h/n) for i in range(n)]
 
 class ResistorGroup(ABC):
+    current, dvoltage = None, None
+
     def __init__(self, rs):
         self.rs = rs
 
     @property
     def i(self):
-        pass
+        return self.current
 
     @property
     def dv(self):
-        pass
+        return self.dvoltage
 
     def calc_i(self):
         assert self.dv != None and self.r != None
-        self.i = self.dv / self.r
+        self.set_i(self.dv / self.r)
+
+    def calc_dv(self):
+        assert self.i != None and self.r != None
+        self.set_dv(self.i * self.r)
+
+    def set_i(self, i):
+        self.current = i
+
+    def set_dv(self, dv):
+        self.dvoltage = dv
+
+    def calc_i_or_dv(self):
+        assert self.dvoltage != None or self.current != None
+        if self.dvoltage == None:
+            self.calc_dv()
+        elif self.current == None:
+            self.calc_i()
+
     @property
     @abstractmethod
     def r(self):
@@ -53,11 +73,20 @@ class ResistorGroup(ABC):
 class SeriesGroup(ResistorGroup):
     def __init__(self, rs):
         self.rs = list(rs)
-        self.resistance = sum([r.r for r in self.rs])
 
     @property
     def r(self):
-        return self.resistance
+        return sum([r.r for r in self.rs])
+
+    def set_i(self, i):
+        super(SeriesGroup, self).set_i(i)
+        for r in self.rs:
+            r.set_i(i)
+
+    def calc(self):
+        self.calc_i_or_dv()
+        for r in self.rs:
+            r.calc()
 
     def display(self, box, plot):
         boxes = box.split_vertically(len(self.rs))
@@ -73,11 +102,20 @@ class SeriesGroup(ResistorGroup):
 class ParallelGroup(ResistorGroup):
     def __init__(self, rs):
         self.rs = list(rs)
-        self.resistance = 1/sum([1/r.r for r in self.rs])
 
     @property
     def r(self):
-        return self.resistance
+        return 1/sum([1/r.r for r in self.rs])
+
+    def set_dv(self, dv):
+        super(ParallelGroup, self).set_dv(dv)
+        for r in self.rs:
+            r.set_dv(dv)
+
+    def calc(self):
+        self.calc_i_or_dv()
+        for r in self.rs:
+            r.calc()
 
     def display(self, box, plot):
         boxes = box.split_across(len(self.rs))
@@ -101,14 +139,24 @@ class Resistor(ResistorGroup):
     def r(self):
         return self.resistance
 
+    def calc(self):
+        return self.calc_i_or_dv()
+
     def display(self, box, plot):
         n = 5
         w = math.log(1+math.log(1+self.r))
-        xs = [box.x] + [box.x + (-1)**i * min(w/100, box.w/2) for i in range(n)] + [box.x]
+        width = min(w/100, box.w/2)
+        xs = [box.x] + [box.x + (-1)**i * width for i in range(n)] + [box.x]
         ys = [box.y + box.h*((i/(n+1)+ 1)/3) for i in range(n+2)]
         plot.plot(xs, ys, linewidth=w, color=self.color)
         plot.plot([box.x, box.x], [box.y, box.y + box.h/3], color=wire_color)
         plot.plot([box.x, box.x], [box.y+box.h*2/3, box.y + box.h], color=wire_color)
+        string =  str(self.r) + "Ω"
+        if self.current != None:
+            string += " " + "{0:.2f}".format(self.i) + "A"
+        if self.dvoltage != None:
+            string += " " + "{0:.2f}".format(self.dv) + "V"
+        plt.text(box.x + width, box.y + box.h/2, string, color=self.color, horizontalalignment="left", verticalalignment="center", fontsize=5)
 
     def __str__(self):
         return str(self.r)
@@ -124,11 +172,11 @@ class Battery:
         plot.plot([-0.5, -0.5, 0.5, 0.5], [0, -0.2, -0.2, 0], wire_color)
         plot.plot([-0.5, -0.5, 0.5, 0.5], [1, 1.2, 1.2, 1], wire_color)
         plot.plot([-0.75, -0.25, -0.25, -0.75, -0.75], [0, 0, 1, 1, 0], self.color)
-        plt.text(-0.5, 0.5, str(self.V) + "V", horizontalalignment="center", color=self.color, weight="bold")
+        plt.text(-0.5, 0.5, str(self.V) + "V", horizontalalignment="center", color=self.color, weight="bold", fontsize=20)
 
     def calc_ivs(self):
-        self.rs.dv = self.V
-        self.rs.calc_i()
+        self.rs.set_dv(self.V)
+        self.rs.calc()
 
 def gen(rs):
     if type(rs) == int or type(rs) == float:
@@ -150,8 +198,9 @@ display_box = Box(0.5, 1, 1, 1)
 def test():
     rs = [(1,3),(12,4,[1,(10,[2,8])])]
     group = gen(rs)
-    print(group.r, group.i)
+    print(group.r)
     bat =  Battery(12, group)
+    bat.calc_ivs()
     bat.display(plt)
     plt.show()
 
