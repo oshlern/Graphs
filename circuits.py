@@ -29,6 +29,22 @@ class ResistorGroup(ABC):
     def __init__(self, rs):
         self.rs = rs
 
+    @property
+    def i(self):
+        pass
+
+    @property
+    def dv(self):
+        pass
+
+    def calc_i(self):
+        assert self.dv != None and self.r != None
+        self.i = self.dv / self.r
+    @property
+    @abstractmethod
+    def r(self):
+        pass
+
     @abstractmethod
     def display(self, box):
         "display self within alloted box on graph"
@@ -37,7 +53,11 @@ class ResistorGroup(ABC):
 class SeriesGroup(ResistorGroup):
     def __init__(self, rs):
         self.rs = list(rs)
-        self.r = sum([r.r for r in self.rs])
+        self.resistance = sum([r.r for r in self.rs])
+
+    @property
+    def r(self):
+        return self.resistance
 
     def display(self, box, plot):
         boxes = box.split_vertically(len(self.rs))
@@ -53,7 +73,11 @@ class SeriesGroup(ResistorGroup):
 class ParallelGroup(ResistorGroup):
     def __init__(self, rs):
         self.rs = list(rs)
-        self.r = 1/sum([1/r.r for r in self.rs])
+        self.resistance = 1/sum([1/r.r for r in self.rs])
+
+    @property
+    def r(self):
+        return self.resistance
 
     def display(self, box, plot):
         boxes = box.split_across(len(self.rs))
@@ -70,8 +94,12 @@ class ParallelGroup(ResistorGroup):
 
 class Resistor(ResistorGroup):
     def __init__(self, resistance, color="orange"):
-        self.r = resistance
+        self.resistance = resistance
         self.color = color
+
+    @property
+    def r(self):
+        return self.resistance
 
     def display(self, box, plot):
         n = 5
@@ -98,6 +126,9 @@ class Battery:
         plot.plot([-0.75, -0.25, -0.25, -0.75, -0.75], [0, 0, 1, 1, 0], self.color)
         plt.text(-0.5, 0.5, str(self.V) + "V", horizontalalignment="center", color=self.color, weight="bold")
 
+    def calc_ivs(self):
+        self.rs.dv = self.V
+        self.rs.calc_i()
 
 def gen(rs):
     if type(rs) == int or type(rs) == float:
@@ -119,7 +150,7 @@ display_box = Box(0.5, 1, 1, 1)
 def test():
     rs = [(1,3),(12,4,[1,(10,[2,8])])]
     group = gen(rs)
-    print(group.r)
+    print(group.r, group.i)
     bat =  Battery(12, group)
     bat.display(plt)
     plt.show()
