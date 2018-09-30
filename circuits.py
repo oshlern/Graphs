@@ -3,9 +3,7 @@ import matplotlib.pyplot as plt
 import math
 
 wire_color = "black"
-unit = 1
-# def sigmoid(x):
-#     return x
+
 class Box:
     def __init__(self, xc, y0, w, h):
         self.x, self.y = xc, y0
@@ -78,7 +76,6 @@ class Resistor(ResistorGroup):
     def display(self, box, plot):
         n = 5
         w = math.log(1+math.log(1+self.r))
-        print(self.r, w, box.w, min(w,box.w/2))
         xs = [box.x] + [box.x + (-1)**i * min(w/100, box.w/2) for i in range(n)] + [box.x]
         ys = [box.y + box.h*((i/(n+1)+ 1)/3) for i in range(n+2)]
         plot.plot(xs, ys, linewidth=w, color=self.color)
@@ -99,6 +96,8 @@ class Battery:
         plot.plot([-0.5, -0.5, 0.5, 0.5], [0, -0.2, -0.2, 0], wire_color)
         plot.plot([-0.5, -0.5, 0.5, 0.5], [1, 1.2, 1.2, 1], wire_color)
         plot.plot([-0.75, -0.25, -0.25, -0.75, -0.75], [0, 0, 1, 1, 0], self.color)
+        plt.text(-0.5, 0.5, str(self.V) + "V", horizontalalignment="center", color=self.color, weight="bold")
+
 
 def gen(rs):
     if type(rs) == int or type(rs) == float:
@@ -113,17 +112,14 @@ def gen(rs):
             out = SeriesGroup([gen(r) for r in rs])
         else:
             print("AHH")
-    # print(out, rs)
     return out
 
 display_box = Box(0.5, 1, 1, 1)
 
 def test():
     rs = [(1,3),(12,4,[1,(10,[2,8])])]
-    rs = [1,2,(2,1,[100,3])]
     group = gen(rs)
-    # print(group)
-    # group.display(display_box, plt)
+    print(group.r)
     bat =  Battery(12, group)
     bat.display(plt)
     plt.show()
