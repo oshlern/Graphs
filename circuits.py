@@ -1,8 +1,9 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
+import math
 
-def sigmoid(x):
-    return x
+# def sigmoid(x):
+#     return x
 class Box:
     def __init__(self, xc, y0, w, h):
         self.x, self.y = xc, y0
@@ -22,16 +23,15 @@ class ResistorGroup(ABC):
     def __init__(self, r1, r2):
         self.r1, self.r2 = r1, r2
 
-    # abstract method
+    @abstractmethod
     def display(self, box):
-        # self.r2.display(box/2 + 1)
-        # self.r1.display(box/2)
-        pass
+        "display self within alloted box on graph"
+        return
 
 def SeriesGroup(ResistorGroup):
-    def __init__(self, r1, r2):
-        self.r1, self.r2 = r1, r2
-        self.r = r1.r + r2.r
+    def __init__(self, *rs):
+        self.rs = rs
+        self.r = sum(self.rs)
 
     def display(self, box, plot):
         top, bottom = box.split_top_bottom()
@@ -39,28 +39,38 @@ def SeriesGroup(ResistorGroup):
         self.r2.display(bottom, plot)
 
     def __str__(self): # []
-        return "["+str(self.r1)+","+str(self.r2)+"]"
+        string = "[" + str(self.rs[0])
+        for r in self.rs[1:]:
+            string += "," + str(r)
+        return string + "]"
 
 def ParallelGroup(ResistorGroup):
-    def __init__(self, r1, r2):
-        self.r1, self.r2 = r1, r2
-        self.r = 1/(1/r1.r + 1/r2.r)
+    def __init__(self, *rs):
+        self.rs = rs
+        self.r = 1/sum([1/r.r for r in self.rs])
 
     def display(self, box, plot):
-        right, left = box.split_right_left()
-        self.r1.display(right, plot)
-        self.r2.display(left, plot)
-        plot.plot(right.x, box.y, left.x, box.y)
+        boxes = box.split_across(n)
+        for r,b in zip(rs,boxes):
+            r.display(b, plot)
+        plot.plot([boxes[0].x, boxes[-1].x] [box.y, , box.y])
 
     def __str__(self): # ()
-        return "("+str(self.r1)+","+str(self.r2)+")"
+        string = "(" + str(self.rs[0])
+        for r in self.rs[1:]:
+            string += "," + str(r)
+        return string + ")"
 
 class Resistor(ResistorGroup):
     def __init__(self, resistance):
         self.r = resistance
 
     def display(self, box):
-        plot.plot(box.x, box.y, box.x, box.y+h)
+        w = math.log(self.r)
+        n = 5
+        xs = [box.x] + [box.x + (-1)**i * w for i in range(n)] + [box.x]
+        ys = [box.y + i/(n+1)*h for i in range(n+2)]
+        plot.plot(xs, ys, line_width=w/3)
 
     def __str__(self):
         return str(self.r)
