@@ -131,7 +131,7 @@ class ParallelGroup(ResistorGroup):
         return string + ")"
 
 class Resistor(ResistorGroup):
-    def __init__(self, resistance, color="orange"):
+    def __init__(self, resistance, color="red"):
         self.resistance = resistance
         self.color = color
 
@@ -143,7 +143,7 @@ class Resistor(ResistorGroup):
         return self.calc_i_or_dv()
 
     def display(self, box, plot):
-        n = 5
+        n, font_size = 5, 5
         w = math.log(1+math.log(1+self.r))
         width = min(w/100, box.w/2)
         xs = [box.x] + [box.x + (-1)**i * width for i in range(n)] + [box.x]
@@ -151,12 +151,15 @@ class Resistor(ResistorGroup):
         plot.plot(xs, ys, linewidth=w, color=self.color)
         plot.plot([box.x, box.x], [box.y, box.y + box.h/3], color=wire_color)
         plot.plot([box.x, box.x], [box.y+box.h*2/3, box.y + box.h], color=wire_color)
-        string =  str(self.r) + "Ω"
+
         if self.current != None:
-            string += " " + "{0:.2f}".format(self.i) + "A"
+            string = "{0:.2f}".format(self.i) + "A"
+            plt.text(box.x + width, box.y + box.h/2 + box.h/6, string, color="blue", horizontalalignment="left", verticalalignment="bottom", fontsize=font_size)
         if self.dvoltage != None:
-            string += " " + "{0:.2f}".format(self.dv) + "V"
-        plt.text(box.x + width, box.y + box.h/2, string, color=self.color, horizontalalignment="left", verticalalignment="center", fontsize=5)
+            string = "{0:.2f}".format(self.dv) + "V"
+            plt.text(box.x + width, box.y + box.h/2 - box.h/6, string, color="green", horizontalalignment="left", verticalalignment="top", fontsize=font_size)
+        string =  str(self.r) + "Ω"
+        plt.text(box.x + width, box.y + box.h/2, string, color=self.color, horizontalalignment="left", verticalalignment="center", fontsize=font_size)
 
     def __str__(self):
         return str(self.r)
@@ -197,6 +200,7 @@ display_box = Box(0.5, 1, 1, 1)
 
 def test():
     rs = [(1,3),(12,4,[1,(10,[2,8])])]
+    rs = [(1,[3,(1,[2,4]),2]),(12,[([3,1],100),10],[1,(10,[2,8])])]
     group = gen(rs)
     print(group.r)
     bat =  Battery(12, group)
