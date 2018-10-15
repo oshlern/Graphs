@@ -163,12 +163,13 @@ class Graph:
     def calc_periods(self):
         self.A = self.generate_adjacency()
         current_A = self.A
-        cycles = [[] for i in range(self.n)]
+        cycles = [[] for i in range(len(self.edges)*2)]
         for k in range(1,self.n+1):
             for i in range(self.n):
                 if current_A[i,i] > 0:
                     cycles[i].append(k)
             current_A = np.dot(current_A, self.A)
+        print(cycles)
         self.periods = [np.gcd.reduce(cycles[i]) for i in range(self.n)]
         return self.periods
 
