@@ -12,5 +12,5 @@ class Markov(Graph):
                 for edge in v.edges:
                     edge.set_strength(1/len(v.edges))
 
-    def calc_period(self):
-        self.period = 1 # add actual code
+
+def part2(graph):

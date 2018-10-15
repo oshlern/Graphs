@@ -160,6 +160,13 @@ class Graph:
                 return True
         return False
 
+    def is_connected_efficient(self):
+        self.calc_eigs()
+        return self.num_components == 1
+
+    def calc_period(self):
+        self.period = 1 # add actual code
+
     def display(self, radius=0.03):
         fig, ax = plt.subplots()
 
@@ -199,7 +206,6 @@ class Graph:
                 row = 0
                 col += 1
         self.display()
-
 
     def __str__(self):
         node_str = "NODES:  "
