@@ -24,14 +24,13 @@ class Edge:
         assert len(vs) != 0, "Empty edge"
         assert all([isinstance(v, Node) for v in vs]), "Edge given a non node_type (given {})".format(vs)
         self.vs = list(vs)
-        self.init_strength(strength)
-
-    def init_strength(self, strength=None):
+        self.capacitated = False
         if strength != None:
-            self.capacitated = True
-            self.strength = strength
-        else:
-            self.capacitated = False
+            self.set_strength(strength)
+
+    def set_strength(self, strength):
+        self.capacitated = True
+        self.strength = strength
 
     def __str__(self):
         string = "("
@@ -86,9 +85,9 @@ class Graph:
                 s = e.strength
             else:
                 s = 1
-            self.A[i, j] = s
+            self.A[i, j] += s
             if not isinstance(e, DirectedEdge):
-                self.A[j,i] = s
+                self.A[j,i] += s
         return self.A
 
     def get_A(self):
