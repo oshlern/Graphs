@@ -75,7 +75,7 @@ class Graph:
                 self.edges.remove(e)
 
     def generate_adjacency(self):
-        self.n = len(self.vs)
+        assert self.n == len(self.vs)
         self.A = np.zeros((self.n, self.n))
         indices = {v: i for i,v in enumerate(self.vs)}
         for e in self.edges:
@@ -88,10 +88,6 @@ class Graph:
             self.A[i, j] += s
             if not isinstance(e, DirectedEdge):
                 self.A[j,i] += s
-        return self.A
-
-    def get_A(self):
-        self.A = self.generate_adjacency()
         return self.A
     
     def generate_degrees(self):
@@ -164,8 +160,17 @@ class Graph:
         self.calc_eigs()
         return self.num_components == 1
 
-    def calc_period(self):
-        self.period = 1 # add actual code
+    def calc_periods(self):
+        self.A = self.generate_adjacency()
+        current_A = self.A
+        cycles = [[] for i in range(self.n)]
+        for k in range(1,self.n+1):
+            for i in range(self.n):
+                if current_A[i,i] > 0:
+                    cycles[i].append(k)
+            current_A = np.dot(current_A, self.A)
+        self.periods = [np.gcd.reduce(cycles[i]) for i in range(self.n)]
+        return self.periods
 
     def display(self, radius=0.03):
         fig, ax = plt.subplots()
@@ -215,6 +220,20 @@ class Graph:
         for e in self.edges:
             edge_str += str(e) + ", "
         return node_str[:-2] + "\n" + edge_str[:-2]
+
+class Markov(Graph):
+    def  __init__(self, edges, vs=None):
+        if not isinstance(edges, Graph):
+            super(Markov, self).__init__(self, edges, vs=vs)
+
+        for v in self.vs:
+            if all([edge.capacitated for edge in v.edges]):
+                total = sum([edge.strength for edge in v.edges])
+                for edge in v.edges:
+                    edge.strength /= total
+            else:
+                for edge in v.edges:
+                    edge.set_strength(1/len(v.edges))
 
 def generate_graph(edges):
     nodes, es = {}, []

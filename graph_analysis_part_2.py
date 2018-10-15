@@ -12,3 +12,8 @@ A_vals, A_vs = np.linalg.eig(g.A)
 print("vals: {}, vs: {}".format(np.diag(A_vs), A_vs))
 print("Laplacian: {}".format(g.L))
 print("vals: {}, vs: {}".format(np.diag(L_vs), L_vs))
+
+g.calc_periods()
+print("periods: {}".format(g.periods))
+
+# m = Markoc
