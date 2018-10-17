@@ -42,7 +42,9 @@ class DirectedEdge(Edge):
     def __init__(self,  v1, v2, strength=None):
         self.v1 = v1
         self.v2 = v2
-        super(DirectedEdge, self).init_strength(strength)
+        self.vs = [v1, v2]
+        self.capacitated = False
+        super(DirectedEdge, self).set_strength(strength)
 
 class Graph:
     def __init__(self, edges, vs=None):
@@ -132,6 +134,20 @@ class Graph:
         self.edges.remove(e)
         del e
 
+    def remove_directed_edge(self, v1, v2):
+        assert v1 in self.vs and v2 in self.vs
+        for e in v1.edges:
+            assert e in self.edges and v1 in e.vs
+            if v2 in e.vs:
+                if isinstance(e, DirectedEdge): 
+                    self.remove_edge(e)
+                else:
+                    new_e = DirectedEdge(v2, v1, e.strength)
+                    for edge_list in [v1.edges, v2.edges, self.edges]:
+                        edge_list[edge_list.index(e)] = new_e
+                    del e
+                break
+
     def is_connected(self):
         queue = [self.vs[0]]
         reachable_vs = [self.vs[0]]
@@ -169,9 +185,18 @@ class Graph:
                 if current_A[i,i] > 0:
                     cycles[i].append(k)
             current_A = np.dot(current_A, self.A)
-        print(cycles)
         self.periods = [np.gcd.reduce(cycles[i]) for i in range(self.n)]
         return self.periods
+
+    def markovify(self):
+        for v in self.vs:
+            if all([edge.capacitated for edge in v.edges]):
+                total = sum([edge.strength for edge in v.edges])
+                for edge in v.edges:
+                    edge.strength /= total
+            else:
+                for edge in v.edges:
+                    edge.set_strength(1/len(v.edges))
 
     def display(self, radius=0.03):
         fig, ax = plt.subplots()
