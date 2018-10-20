@@ -20,11 +20,14 @@ class Node:
         return str(self.id)
 
 class Edge:
+    strength = 1
+
     def __init__(self, *vs, strength=None):
         assert len(vs) != 0, "Empty edge"
         assert all([isinstance(v, Node) for v in vs]), "Edge given a non node_type (given {})".format(vs)
         self.vs = list(vs)
         self.capacitated = False
+
         if strength != None:
             self.set_strength(strength)
 
@@ -44,7 +47,8 @@ class DirectedEdge(Edge):
         self.v2 = v2
         self.vs = [v1, v2]
         self.capacitated = False
-        super(DirectedEdge, self).set_strength(strength)
+        if strength != None:
+            super(DirectedEdge, self).set_strength(strength)
 
 class Graph:
     def __init__(self, edges, vs=None):
@@ -60,21 +64,21 @@ class Graph:
         return edge_str[:-2]
 
     def connect_pointers(self):
+        self.vs = []
+        for e in self.edges:
+            for v in e.vs:
+                if not v in self.vs:
+                    self.vs.append(v)
         # reset pointers
         for v in self.vs:
             v.edges = []
         # set pointers
         for e in self.edges:
-            has_vs = False
-            for v in e.vs:
-                if v in self.vs:
-                    v.edges.append(e)
-                    has_vs = True
-                else:
-                    self.vs.remove(v)
-                    e.vs.remove(v)
-            if not has_vs:
+            if len(e.vs) == 0:
                 self.edges.remove(e)
+                continue
+            for v in e.vs:
+                v.edges.append(e)
 
     def generate_adjacency(self):
         assert self.n == len(self.vs)
@@ -83,13 +87,9 @@ class Graph:
         for e in self.edges:
             assert len(e.vs) == 2
             i, j = indices[e.vs[0]], indices[e.vs[1]]
-            if e.capacitated:
-                s = e.strength
-            else:
-                s = 1
-            self.A[i, j] += s
+            self.A[i, j] += e.strength
             if not isinstance(e, DirectedEdge):
-                self.A[j,i] += s
+                self.A[j,i] += e.strength
         return self.A
     
     def generate_degrees(self):
@@ -133,6 +133,21 @@ class Graph:
             v.edges.remove(e)
         self.edges.remove(e)
         del e
+
+    def split_edge(self, e):
+        assert e in self.es
+        assert not isinstance(e, DirectedEdge)
+        assert len(e.vs) == 2
+        v1, v2 = e.vs
+        e1 = DirectedEdge(v1, v2, e.strength)
+        e2 = DirectedEdge(v2, v1, e.strength)
+        for edge_list in [self.edges, v1.edges, v2.edges]:
+            edge_list.remove(e)
+            edge_list.append(e1)
+            edge_list.append(e2)
+        return e1, e2
+        # will break for removing vertices. Add incoming and outgoing edge lists for nodes
+        # alternatively, check if v == e.v1 when using the edge
 
     def remove_directed_edge(self, v1, v2):
         assert v1 in self.vs and v2 in self.vs
@@ -188,16 +203,6 @@ class Graph:
         self.periods = [np.gcd.reduce(cycles[i]) for i in range(self.n)]
         return self.periods
 
-    def markovify(self):
-        for v in self.vs:
-            if all([edge.capacitated for edge in v.edges]):
-                total = sum([edge.strength for edge in v.edges])
-                for edge in v.edges:
-                    edge.strength /= total
-            else:
-                for edge in v.edges:
-                    edge.set_strength(1/len(v.edges))
-
     def display(self, radius=0.03):
         fig, ax = plt.subplots()
 
@@ -239,27 +244,55 @@ class Graph:
         self.display()
 
     def __str__(self):
-        node_str = "NODES:  "
-        for v in self.vs: # ugh why does sum not work for lists of strs
-            node_str += str(v) + ", "
-        edge_str = "EDGES:  "
-        for e in self.edges:
-            edge_str += str(e) + ", "
+        node_str = "NODES: " + sum([str(v) + ", " for v in self.vs], "")
+        edge_str = "EDGES: " + sum([str(e) + ", " for v in self.edges], "")
         return node_str[:-2] + "\n" + edge_str[:-2]
+
+def duplicate_vs_es(old_vs, old_es):
+    vs, es =  {}, []
+    for v in old_vs:
+        vs[v.id] = Node(v.id)
+    for e in old_es:
+        es.append(Edge(*[vs[v.id] for v in e.vs]))
+    return vs, es
+
+def duplicate_graph(g, return_args=False):
+    vs, edges =  duplicate_vs_es(g.vs, g.edges)
+    return Graph(edges, vs)
 
 class Markov(Graph):
     def  __init__(self, edges, vs=None):
-        if not isinstance(edges, Graph):
-            super(Markov, self).__init__(self, edges, vs=vs)
-
+        if isinstance(edges, Graph):
+            self.vs, self.edges = duplicate_vs_es(edges.vs, edges.edges)
+        else:
+            self.vs, self.edges = duplicate_vs_es(vs, edges)
+        self.n = len(self.vs)
+        for e in copy.copy(self.edges):
+            if not isinstance(e, DirectedEdge):     
+                assert len(e.vs) == 2
+                v1, v2 = e.vs
+                if e.capacitated:
+                    e1 = DirectedEdge(v1, v2, e.strength)
+                    e2 = DirectedEdge(v2, v1, e.strength)
+                else:
+                    e1 = DirectedEdge(v1, v2)
+                    e2 = DirectedEdge(v2, v1)
+                self.edges.remove(e)
+                self.edges.append(e1)
+                self.edges.append(e2)
+        
+        self.connect_pointers()
         for v in self.vs:
-            if all([edge.capacitated for edge in v.edges]):
-                total = sum([edge.strength for edge in v.edges])
-                for edge in v.edges:
-                    edge.strength /= total
-            else:
-                for edge in v.edges:
-                    edge.set_strength(1/len(v.edges))
+            total = 0
+            for e in v.edges:
+                assert isinstance(e, DirectedEdge)
+                if e.v1 == v:
+                    total += e.strength
+            for e in v.edges:
+                if e.v1 == v:
+                    e.set_strength(e.strength/total)
+
+
 
 def generate_graph(edges):
     nodes, es = {}, []
