@@ -174,6 +174,9 @@ class Graph:
             # print("ALL: ", [str(v) for v in self.vs])
             # print([str(e) for e in v.edges])
             for edge in v.edges:
+                if isinstance(edge, DirectedEdge):
+                    if v != edge.v1:
+                        continue
                 for adj_v in edge.vs:
                     assert adj_v in self.vs
                     # print(adj_v, ", unreachable: ", [str(v) for v in unreachable_vs])
