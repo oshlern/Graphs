@@ -16,7 +16,7 @@ class Node:
         self.x = self.y = None # Pointer and mutability won't matter because they need to be redefined, not modified
         self.edges = []
     
-    def __str__(self):
+    def __repr__(self):
         return str(self.id)
 
 class Edge:
@@ -35,7 +35,7 @@ class Edge:
         self.capacitated = True
         self.strength = strength
 
-    def __str__(self):
+    def __repr__(self):
         string = "("
         for v in self.vs:
             string += str(v) + ", "
@@ -50,21 +50,26 @@ class DirectedEdge(Edge):
         if strength != None:
             super(DirectedEdge, self).set_strength(strength)
 
-class Graph:
-    def __init__(self, edges, vs=None):
-        self.edges = edges
-        self.vs = vs
-        self.n = len(vs)
-        self.connect_pointers()
-    
-    def edges_to_str(self, es):
+    def __repr__(self):
+        return "({} -> {})".format(self.v1, self.v2)
+
+def edges_to_str(edges):
         edge_str = ""
-        for e in self.edges:
+        for e in edges:
             edge_str += str(e) + ", "
         return edge_str[:-2]
 
+class Graph:
+    def __init__(self, edges, vs=[]):
+        self.edges = edges
+        self.vs = vs
+        self.connect_pointers()
+        self.n = len(self.vs)
+    
+    def edges_to_str(self):
+        return edges_to_str(self.edges)
+
     def connect_pointers(self):
-        self.vs = []
         for e in self.edges:
             for v in e.vs:
                 if not v in self.vs:
@@ -73,7 +78,7 @@ class Graph:
         for v in self.vs:
             v.edges = []
         # set pointers
-        for e in self.edges:
+        for e in copy.copy(self.edges):
             if len(e.vs) == 0:
                 self.edges.remove(e)
                 continue
@@ -151,7 +156,7 @@ class Graph:
 
     def remove_directed_edge(self, v1, v2):
         assert v1 in self.vs and v2 in self.vs
-        for e in v1.edges:
+        for e in copy.copy(v1.edges):
             assert e in self.edges and v1 in e.vs
             if v2 in e.vs:
                 if isinstance(e, DirectedEdge): 
@@ -159,9 +164,9 @@ class Graph:
                 else:
                     new_e = DirectedEdge(v2, v1, e.strength)
                     for edge_list in [v1.edges, v2.edges, self.edges]:
-                        edge_list[edge_list.index(e)] = new_e
+                        edge_list.remove(e)
+                        edge_list.append(new_e)
                     del e
-                break
 
     def is_connected(self):
         queue = [self.vs[0]]
@@ -233,7 +238,7 @@ class Graph:
         self.display()
 
     def display_grid(self, width=3):
-        self.n = len(self.vs)
+        assert self.n == len(self.vs)
         sqrt = round(math.sqrt(self.n))
         row, col = 0,  0
         for v in self.vs:
@@ -246,21 +251,31 @@ class Graph:
                 col += 1
         self.display()
 
-    def __str__(self):
-        node_str = "NODES: " + sum([str(v) + ", " for v in self.vs], "")
-        edge_str = "EDGES: " + sum([str(e) + ", " for v in self.edges], "")
+    def __repr__(self):
+        node_str = "NODES:  "
+        for v in self.vs: # ugh why does sum not work for lists of strs
+            node_str += str(v) + ", "
+        edge_str = "EDGES:  "
+        for e in self.edges:
+            edge_str += str(e) + ", "
         return node_str[:-2] + "\n" + edge_str[:-2]
 
 def duplicate_vs_es(old_vs, old_es):
     vs, es =  {}, []
     for v in old_vs:
-        vs[v.id] = Node(v.id)
+        vs[v.id] = Node(v.id)#str(v.id) + "\'")
     for e in old_es:
-        es.append(Edge(*[vs[v.id] for v in e.vs]))
-    return vs, es
+        if isinstance(e, DirectedEdge):
+            new_e = DirectedEdge(vs[e.v1.id], vs[e.v2.id])
+        else:
+            new_e = Edge(*[vs[v.id] for v in e.vs])
+        if e.capacitated:
+            new_e.set_strength(e.strength)
+        es.append(new_e)
+    return list(vs.values()), es
 
 def duplicate_graph(g, return_args=False):
-    vs, edges =  duplicate_vs_es(g.vs, g.edges)
+    vs, edges = duplicate_vs_es(g.vs, g.edges)
     return Graph(edges, vs)
 
 class Markov(Graph):
