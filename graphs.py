@@ -15,7 +15,27 @@ class Node:
         self.id = name
         self.x = self.y = None # Pointer and mutability won't matter because they need to be redefined, not modified
         self.edges = []
-    
+
+    def get_incoming(self):
+        out = []
+        for e in self.edges:
+            if isinstance(e, DirectedEdge):
+                if e.v2 == self:
+                    out.append(e)
+            else:
+                out.append(e)
+        return out
+
+    def get_outgoing(self):
+        out = []
+        for e in self.edges:
+            if isinstance(e, DirectedEdge):
+                if e.v1 == self:
+                    out.append(e)
+            else:
+                out.append(e)
+        return out
+
     def __repr__(self):
         return str(self.id)
 
@@ -65,6 +85,7 @@ class Graph:
         self.vs = vs
         self.connect_pointers()
         self.n = len(self.vs)
+        self.display_degree_centrality = False
     
     def edges_to_str(self):
         return edges_to_str(self.edges)
@@ -178,10 +199,7 @@ class Graph:
             # print("REACHABLE: ", [str(v) for v in reachable_vs])
             # print("ALL: ", [str(v) for v in self.vs])
             # print([str(e) for e in v.edges])
-            for edge in v.edges:
-                if isinstance(edge, DirectedEdge):
-                    if v != edge.v1:
-                        continue
+            for edge in v.get_outgoing():
                 for adj_v in edge.vs:
                     assert adj_v in self.vs
                     # print(adj_v, ", unreachable: ", [str(v) for v in unreachable_vs])
@@ -219,7 +237,10 @@ class Graph:
 
         for v in self.vs:
             ax.add_artist(Circle((v.x, v.y), radius, color="black"))
-            plt.text(v.x, v.y + radius*2, str(v))
+            string = str(v)
+            if self.display_degree_centrality:
+                string += " " + str(len(v.edges))
+            plt.text(v.x, v.y + radius*2, string)
 
         ax.set_xlim(min([v.x for v in self.vs]) - 0.5, max([v.x for v in self.vs]) + 0.5)
         ax.set_ylim(min([v.y for v in self.vs]) - 0.5, max([v.y for v in self.vs]) + 0.5)
@@ -240,7 +261,7 @@ class Graph:
     def display_grid(self, width=3):
         assert self.n == len(self.vs)
         sqrt = round(math.sqrt(self.n))
-        row, col = 0,  0
+        row, col = 0, 0
         for v in self.vs:
             v.x = row * width/sqrt
             v.y = col * width/sqrt
@@ -337,6 +358,19 @@ def generate_random_graph(n, k): # n = # vs, k = # edges
     del possible_edges
     return Graph(es, vs)
 
+def generate_random_bipartite(n1, n2, k):
+    vs1 = [Node("a" + str(i+1)) for i in range(n1)]
+    vs2 = [Node("b" + str(i+1)) for i in range(n2)]
+    es = []
+    possible_edges = []
+    for i in range(n1):
+        possible_edges += [(i, j) for j in range(n2)]
+    for _ in range(k):
+        i, j = random.choice(possible_edges)
+        es.append(Edge(vs1[i], vs2[j]))
+        possible_edges.remove((i,j))
+    del possible_edges
+    return Graph(es, vs1+vs2)
 
 def test():
     edge_list = [(1,3), (2,3), (3,4), (4,6), (5,2), (6,1), (5,4)]
