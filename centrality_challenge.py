@@ -1,18 +1,6 @@
 from graphs import *
 
-def generate_random_bipartite(n1, n2, k):
-    vs1 = [Node("a" + str(i+1)) for i in range(n1)]
-    vs2 = [Node("b" + str(i+1)) for i in range(n2)]
-    es = []
-    possible_edges = []
-    for i in range(n1):
-        possible_edges += [(i, j) for j in range(n2)]
-    for _ in range(k):
-        i, j = random.choice(possible_edges)
-        es.append(Edge(vs1[i], vs2[j]))
-        possible_edges.remove((i,j))
-    del possible_edges
-    return Graph(es, vs1+vs2)
+
 
 # B = generate_random_bipartite(4, 5, 10)
 # B.display_degree_centrality = True
@@ -29,13 +17,29 @@ def get_degree_centralities(g):
         C.append(c/(len(g.vs)-1))
     return C_in, C_out, C
 
-n = 10
-for i in range(1,n):
-    B = generate_random_bipartite(i, n-i, np.random.randint(1,i*(n-i)))
-    C_in, C_out, C = get_degree_centralities(B)
-    Max = max(C)
-    avg = sum(C)/len(C)
-    print("average: {}, max: {}".format(avg, Max))
+def get_alpha_centrality(g, a):
+    cs = np.dot(np.linalg.inv(np.identity(g.n) - a*g.generate_adjacency().T), np.ones(g.n))
+    return list(cs/sum(cs))
+
+# n = 10
+# for i in range(1,n):
+#     B = generate_random_bipartite(i, n-i, np.random.randint(1,i*(n-i)))
+#     C_in, C_out, C = get_degree_centralities(B)
+#     Max = max(C)
+#     avg = sum(C)/len(C)
+#     print("average: {}, max: {}".format(avg, Max))
+#     B.display_degree_centrality = True
+#     B.display_frucht()
+
+n = 7
+for i in range(1,11):
+    B = generate_random_graph(n,i)
+    # C_in, C_out, C = get_degree_centralities(B)
+    for a in range(1,10):
+        alpha = a/10
+        C = get_alpha_centrality(B, alpha)
+        Max = max(C)
+        avg = sum(C)/len(C)
+        print("a: {}, average: {}, max: {}, cs: {}".format(alpha, avg, Max, C))
     B.display_degree_centrality = True
     B.display_frucht()
-    
